@@ -1,0 +1,293 @@
+# FarmRover - ESP32 Agricultural Rover System
+
+## Overview
+
+FarmRover is an autonomous agricultural monitoring and management system built on the ESP32 platform. It combines robotics, environmental sensing, and web-based control to provide a comprehensive solution for smart farming applications. The system can operate in both manual and autonomous modes, making it suitable for various agricultural tasks including plant monitoring, soil analysis, and pest deterrence.
+
+## Key Features
+
+### 🤖 Autonomous Navigation
+- **Line/Valley Following**: Uses infrared sensors to follow designated paths between crop rows
+- **Obstacle Detection**: Touch sensor prevents servo probe damage during soil measurements
+- **Smart Movement**: Automatic path correction based on sensor feedback
+
+### 🌱 Plant Monitoring
+- **Plant Counting**: TCRT5000 IR sensor detects and counts plants as the rover moves
+- **Debounce Protection**: Prevents multiple counting of the same plant
+- **Event Logging**: Timestamps and records each plant detection
+
+### 🌍 Environmental Sensing
+- **Temperature & Humidity**: DHT11 sensor provides real-time climate data
+- **Light Intensity**: LDR sensor determines day/night conditions
+- **Sound Detection**: Microphone sensor for animal activity monitoring
+- **Soil Moisture**: Servo-actuated probe with capacitive/conductive sensing
+
+### 🛡️ Pest & Animal Deterrence
+- **Ultrasound Generation**: Emits high-frequency sounds to deter pests and animals
+- **Cooldown Mechanism**: Prevents excessive triggering and power waste
+- **Relay Control**: External device control (lights, ultrasonic transducers, etc.)
+
+### 🎮 Web Control Interface
+- **Responsive Design**: Mobile-optimized dark theme interface
+- **D-Pad Controls**: Touch-optimized movement controls with hold-to-move functionality
+- **Live Data Dashboard**: Real-time sensor readings updated every 2 seconds
+- **Command Buttons**: One-tap access to key functions (Probe, Deter, Auto/Manual modes)
+
+### 📊 Data Management
+- **SPIFFS Storage**: Local JSON logging of all sensor events
+- **HTTP Upload**: Batch data transfer to remote server
+- **Auto-retry**: Persistent data logging even during connection loss
+
+## Hardware Requirements
+
+### Microcontroller
+- ESP32 development board (any variant with sufficient I/O)
+
+### Sensors
+- DHT11 Temperature & Humidity Sensor
+- TCRT5000 IR Line Tracking Module (x2)
+- TCRT5000 IR Plant Counting Sensor
+- CD4051 Analog Multiplexer
+- Microphone/Sound Sensor Module
+- LDR Light Sensor Module
+- Capacitive/Conductive Soil Moisture Sensor
+- Touch Sensor Module
+- Ultrasonic Distance Sensor (HC-SR04)
+
+### Actuators
+- 4x DC Motors with driver (L298N or similar)
+- Servo Motor (for probe actuation)
+- Buzzer/Piezo Speaker
+- Relay Module (for external devices)
+- Ultrasonic Transducer (40kHz, for pest deterrence)
+
+### Power
+- 12V battery system (or adequate power supply for motors)
+- 5V voltage regulation for ESP32 and sensors
+
+## Pin Configuration
+
+| Pin | Function | Pin | Function |
+|-----|----------|-----|----------|
+| 27  | Motor 1A | 32  | Sound Sensor |
+| 14  | Motor 2A | 35  | LDR Sensor |
+| 12  | Motor 3A | 19  | DHT11 Data |
+| 13  | Motor 4A | 34  | Opto Input |
+| 22  | Motor EN | 23  | Vibration Sensor |
+| 3   | Relay    | 18  | Touch Sensor |
+| 15  | Buzzer   | 25  | Ultrasonic Trig |
+| 33  | Servo    | 26  | Ultrasonic Echo |
+| 4   | MUX A    | 36  | MUX Input |
+| 2   | MUX B    |     |     |
+| 5   | MUX C    |     |     |
+
+### CD4051 Multiplexer Channels
+- Channel 0: Plant Counter (TCRT5000)
+- Channel 2: Soil Moisture Probe
+- Channel 4: Left Line Sensor
+- Channel 5: Right Line Sensor
+
+## Installation & Setup
+
+### 1. Hardware Assembly
+1. Connect all components according to the pin diagram above
+2. Mount sensors securely on the rover chassis
+3. Ensure the soil moisture probe has full range of motion
+4. Verify line sensors are properly positioned for valley following
+5. Mount the plant counting sensor with appropriate height and angle
+
+### 2. Software Setup
+1. Install Arduino IDE (1.8.19 or newer) or PlatformIO
+2. Install ESP32 board support (v2.0.14 or newer recommended)
+3. Install required libraries:
+   ```
+   WiFi.h
+   HTTPClient.h
+   WebServer.h
+   SPIFFS.h
+   DHT.h
+   ESP32Servo.h
+   ArduinoJson.h (v6.21.3 or newer)
+   ```
+4. Configure WiFi credentials in the code:
+   ```cpp
+   const char* WIFI_SSID = "YourFarmWiFi";
+   const char* WIFI_PASS = "YourPassword";
+   ```
+5. Set server URL for data upload:
+   ```cpp
+   const char* SERVER_URL = "http://192.168.1.100:3000/upload";
+   ```
+
+### 3. Upload Firmware
+1. Connect ESP32 via USB
+2. Select appropriate board and port
+3. Compile and upload
+4. Monitor serial output (115200 baud) for debugging
+
+## Usage Guide
+
+### Web Interface
+Access the rover's control panel by navigating to the ESP32's IP address in any web browser:
+```
+http://[ESP32-IP-Address]/
+```
+
+### Control Modes
+
+#### Manual Mode (Default)
+- **Directional Controls**: Use the D-pad for precise movement
+- **Hold Function**: Press and hold direction buttons for continuous movement
+- **Stop Button**: Immediately halts all motor activity
+- **One-Time Actions**: Probe, Deter, and Upload Data buttons
+
+#### Auto Mode
+- Automatically follows the valley/line path
+- Performs periodic soil moisture measurements
+- Activates plant counting and pest detection
+- Maintains path following without user intervention
+
+### Key Functions
+
+| Function | Description |
+|----------|-------------|
+| **Probe** | Deploys the soil moisture sensor and records reading |
+| **Deter** | Activates ultrasonic deterrent for 8 seconds |
+| **Upload** | Sends all logged data to configured server |
+| **Auto** | Switches to autonomous mode |
+| **Manual** | Returns to manual control mode |
+
+## Data Output
+
+### Log Files
+- Location: `/datalog.json` in SPIFFS
+- Format: JSON objects (one per line)
+- Events logged:
+  - Plant detections
+  - Soil moisture readings
+  - Animal detections
+  - Probe failures
+
+### Upload Format
+The system sends an array of JSON objects to the server:
+```json
+[
+  {"event":"plant","count":12,"lat":0.0,"lng":0.0},
+  {"event":"moisture","value":45.6,"lat":0.0,"lng":0.0},
+  {"event":"animal","sound":2100,"lat":0.0,"lng":0.0}
+]
+```
+
+## System Calibration
+
+### Sensor Thresholds
+The following values may need adjustment for your specific environment:
+
+```cpp
+#define SOUND_THRESHOLD      1500   // Animal detection level
+#define MOISTURE_THRESH      30.0   // Dry/wet threshold (%)
+#define DAY_LIGHT_MIN        2000   // LDR day/night boundary
+#define PLANT_IR_THRESHOLD   1500   // Plant detection sensitivity
+```
+
+### Timing Parameters
+Configure the system behavior with these constants:
+
+```cpp
+#define PROBE_RETRIES        6      // Soil probe retry attempts
+#define ULTRA_DURATION_MS    8000   // Deterrence duration
+#define SOUND_COOLDOWN_MS    10000  // Between pest detections
+#define MOISTURE_INTERVAL_MS 30000  // Auto-mode probe interval
+```
+
+## Troubleshooting
+
+### Wi-Fi Connection Issues
+- Ensure SSID/password are correct
+- Check router supports 2.4GHz (ESP32 limitation)
+- Verify the ESP32 is within range
+- Reset WiFi credentials by re-uploading code
+
+### Sensor Read Failures
+- Verify pin connections and power supply
+- Check MUX channel selection logic
+- Enable serial debugging to monitor raw values
+- Adjust threshold values if readings are unexpected
+
+### SPIFFS Errors
+- Format the SPIFFS partition if corrupted
+- Ensure file size doesn't exceed partition limits
+- Monitor for write failures in serial output
+
+### Servo Issues
+- Calibrate servo position (10° retracted, 80° extended)
+- Ensure power supply can handle servo current draw
+- Check for mechanical obstruction
+
+## API Reference
+
+### HTTP Endpoints
+
+#### `/` - Web Interface
+Returns the HTML dashboard interface.
+
+#### `/command` - Command Handler
+**Parameters:** `cmd` = command string
+**Commands:** `F`, `B`, `L`, `R`, `STOP`, `PROBE`, `DETER`, `AUTO`, `MANUAL`, `UPLOAD`
+
+#### `/data` - Sensor Data
+Returns JSON with current sensor readings:
+```json
+{
+  "temp": 24.5,
+  "hum": 62.3,
+  "ldr": 1800,
+  "sound": 1200,
+  "moisture": 42.1,
+  "plants": 15
+}
+```
+
+#### `/upload` - Manual Upload
+Triggers data upload to the configured server endpoint.
+
+## Customization
+
+### Adding New Sensors
+1. Assign new pin definitions
+2. Add initialization in `setup()`
+3. Include reading in `updateSensors()` for caching
+4. Add to web interface `pollData()` function
+5. Update JSON response in `handleSensorData()`
+
+### Modifying the Web Interface
+- Edit the HTML in `handleRoot()`
+- Update CSS for visual changes
+- Modify JavaScript for new interaction patterns
+- Add/remove dashboard cards as needed
+
+### Extending Logging
+1. Create new JSON document structure
+2. Add to appropriate sensor functions
+3. System automatically includes in batch uploads
+
+## License & Attribution
+
+This project is open-source and available for educational and commercial use. Attribution is appreciated but not required.
+
+## Support & Contributions
+
+For issues, feature requests, or contributions, please submit a pull request or open an issue on the project repository.
+
+## Version History
+
+### v1.0.0 (Current)
+- Initial release
+- Full manual/auto control
+- All sensors integrated
+- Web interface complete
+- SPIFFS data logging
+
+---
+
+**FarmRover** - Bringing precision agriculture within reach of every farmer. 🌾
